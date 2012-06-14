@@ -1,74 +1,86 @@
-datatype Id = char
-datatype valor = ValorInteiro of int | ValorBooleano of bool
+datatype Expression =
+      VInt of int
+    | VBool of bool
+    | Id of string
+    | AExp of Expression * string * Expression
+    | BExp of Expression * string * Expression
+    | If of string * Expression * Expression * Expression;
 
-datatype Expressao =
-  Valor of valor
-| Id of Id
-| ExpBinaria of expBinaria
-(*| IfThenElse of (string * ExpBinaria * Expressao * Expressao)*)
-and
-expBinaria = ExpBool of (Expressao * string * Expressao)
-           | ExpAritm of (Expressao * string * Expressao)
+datatype Application = App of (string * Expression list * Expression) * Expression list 
 
 exception Eval_Error of string
 
-fun is_value(e:Expressao):bool =
+fun is_value(e:Expression):bool =
   case e of
-    Valor _ => true
+    VInt _ => true
+  | VBool _ => true
   | Id _ => false
-  | ExpBinaria(_) => false
+  | AExp(_) => false
+  | BExp(_) => false
+  | If _ => false
 
-fun subst(v:Expressao, x:Id, e:Expressao):Expressao =
+(* GAMB *)                          
+fun comp(e:Expression, s:string) =
   case e of
-    Valor _ => e
-  | ExpBinaria(ExpBool(e1,b,e3)) =>  ExpBinaria(ExpBool(subst(v,x,e1), b, subst(v,x,e3)))
-  | ExpBinaria(ExpAritm(e1,a,e3)) => ExpBinaria(ExpAritm(subst(v,x,e1), a, subst(v,x,e3)))
+    Id x => if(x = s) then true else false
+   | _ => false
 
-fun eval_op(v1:valor, b:string, v2:valor):valor =
-  case (v1, b, v2) of
-    (ValorInteiro i1, "+", ValorInteiro i2) => ValorInteiro(i1+i2)
-  | (ValorInteiro i1, "-", ValorInteiro i2) => ValorInteiro(i1-i2)
-  | (ValorBooleano b1, "Or", ValorBooleano b2) => ValorBooleano(b1 orelse b2)
-  | (ValorBooleano b1, "And", ValorBooleano b2) => ValorBooleano(b1 andalso b2)
-  | (ValorBooleano b1, "==", ValorBooleano b2) => if (b1 = b2) then ValorBooleano(true) else ValorBooleano(false)
-  | (_,_,_) => raise Eval_Error("Expressão binária inválida.")
-
-
-fun eval'(e:Expressao):Expressao =
+fun subst(v:Expression, x:Expression, e:Expression):Expression =
   case e of
-    Valor v => Valor v
-  | ExpBinaria(ExpBool (e1, b, e2)) =>
-      let val v1 = eval e1
-          val v2 = eval e2
+    VInt _ => e
+  | VBool _ => e
+  | Id y => if comp(x,y) then v else Id y
+  | BExp(e1,s,e2) => BExp(subst(v,x,e1), s, subst(v,x,e2))
+  | AExp(e1,s,e2) => AExp(subst(v,x,e1), s, subst(v,x,e2))
+  | If(s,e1,e2,e3) => If(s,subst(v,x,e1),subst(v,x,e2), subst(v,x,e3))
+
+and substitue(v:Expression list, l:Expression list, e:Expression):Expression =
+   case (v,l,e) of
+    (u::nil,k::nil,e) => subst(u,k,e)
+  | ((u::us),(k::ks),e) => substitue(us,ks,subst(u,k,e):Expression)
+
+
+fun evalExp(e:Expression):Expression =
+  case e of
+    VInt v => VInt v
+  | VBool v => VBool v
+  | BExp(e1, s, e2) =>
+      let val v1 = evaluateExpression e1
+          val v2 = evaluateExpression e2
       in
-        case (v1, v2) of
-          (Valor v1, Valor v2) => Valor(eval_op(v1, b, v2))
-          | _ => raise Eval_Error("Expressão binária incorreta.")
+        case (v1, s, v2) of
+            (VBool b1, "Or", VBool b2) => VBool(b1 orelse b2)
+          | (VBool b1, "And", VBool b2) => VBool(b1 andalso b2)
+          | (VBool b1, "==", VBool b2) => if (b1 = b2) then VBool(true) else VBool(false)
+          | _ => raise Eval_Error("Expressão booleana incorreta.")
       end
-  | ExpBinaria(ExpAritm (e1, a, e2)) =>
-      let val v1 = eval e1
-          val v2 = eval e2
+  | AExp(e1, s, e2) =>
+      let val v1 = evaluateExpression e1
+          val v2 = evaluateExpression e2
       in
-        case (v1, v2) of
-          (Valor v1, Valor v2) => Valor(eval_op(v1, a, v2))
-          | _ => raise Eval_Error("Expressão aritmética incorreta.")
+        case (v1, s, v2) of
+          (VInt i1, "+", VInt i2) => VInt(i1+i2)
+        | (VInt i1, "-", VInt i2) => VInt(i1-i2)
+        | _ => raise Eval_Error("Expressão aritmética incorreta.")
       end
   | Id _ => raise Eval_Error("Variável livre.") 
-(*   | IfThenElse ("if",b,e1,e2) => if Valor(eval b)
-                                   then eval e1
-                                   else eval e2*)
-and eval(e:Expressao):Expressao =
+(*  | If ("if",BExp(e1),e2,e3) => if evaluateExpression(BExp(e1)) then
+                             eval e2
+                             else eval e3*)
+
+and evaluateExpression(e:Expression):Expression =
   if is_value e then e else
-       eval'(e)
+       evalExp(e)
+
+fun evaluateApplication(app:Application):Expression =
+  case app of
+    App(("fun",l,exp), vs) => evaluateExpression(substitue(vs, l, exp))
+  | _ => raise Eval_Error("Aplicação inválida.") 
        
 (* TESTES *)
-val e1 = ExpBinaria(ExpAritm(Valor(ValorInteiro 300), "+", Valor(ValorInteiro 12)));
-val e2 = ExpBinaria(ExpAritm(Valor(ValorInteiro 300), "-", Valor(ValorInteiro 12)));
-val e3 = ExpBinaria(ExpBool(Valor(ValorBooleano true), "And", Valor(ValorBooleano false)));
-val e4 = ExpBinaria(ExpBool(Valor(ValorBooleano true), "Or", Valor(ValorBooleano false)));
-val e5 = ExpBinaria(ExpBool(Valor(ValorBooleano true), "==", Valor(ValorBooleano false)));
-
-
-
+val e1 = App(("fun", [Id "x", Id "y"], AExp (Id "x", "+", Id "y")), [VInt 2, VInt 3]);
+val e2 = App(("fun", [Id "x", Id "y"], AExp (AExp (Id "x", "+", Id "y"),"+", VInt 10)), [VInt 2, VInt 3])
+val e3 = App(("fun", [Id "x", Id "y"], BExp (Id "x", "And", Id "y")), [VBool false, VBool true]);
+val e4 = App(("fun", [Id "x", Id "y"], AExp (Id "x", "+", Id "y")), [AExp (VInt 2, "+", VInt 5), VInt 3]);
 
 
