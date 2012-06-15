@@ -6,7 +6,8 @@ datatype Expression =
     | BExp of Expression * string * Expression
     | If of string * Expression * Expression * Expression;
 
-type Application = (string * Expression list * Expression) * Expression list 
+type Function = string * Expression list * Expression
+type Application = Function * Expression list 
 
 exception evaluateError of string
 

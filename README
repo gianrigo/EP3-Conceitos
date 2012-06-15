@@ -1,0 +1,17 @@
+MAC0316 – Conceitos Fund. de Linguagens de Programação
+Professora Ana C. V. de Melo
+
+Terceiro Trabalho - SML - Programação funcional
+
+-------------------------------------------------------
+
+Giancarlo Rigo -  6910034
+Jackson José de Souza - 6796969
+Jéssica Yumi Kojima - 6920199
+Paulo Cheadi Haddad Filho - 5210744
+
+-------------------------------------------------------
+
+Para usar:
+$ sml
+> use "interpreter.sml";
