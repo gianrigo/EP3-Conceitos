@@ -49,7 +49,8 @@ fun subst(v:Expression, x:Expression, e:Expression):Expression =
 and substitute(v:Expression list, l:Expression list, e:Expression):Expression =
   (print "> "; print_exp e; print " [Substituicao] \n"; 
    case (v,l,e) of
-    (u::nil,k::nil,e) => subst(u,k,e)
+    (u::nil,k::nil,e) => subst(u,k,e)(*precisava dar um jeito de dar "print "> "; print_exp subst(u,k,e); print "\n";"
+      			               aqui, assim a impressao passo a passo nao pularia etapas (ex: teste e2)*)
   | ((u::us),(k::ks),e) => substitute(us,ks,subst(u,k,e):Expression))
 
 fun evalExp(e:Expression):Expression =
@@ -90,9 +91,11 @@ and evaluateExpression(e:Expression):Expression =
   if is_value e then
     e
   else
-    (let val v = evalExp(e)
+    (print "> "; print_exp e; print "\n";(*fica meio repetitivo, mas pelo menos não parece que pula etapas*)
+     let val v = evalExp(e)
      in
-       print "> "; print_exp e; print " [Aplicacao] \n";
+       print "> ("; print_exp e; print ") [Aplicacao] \n"; (* achei melhor colocar os parenteses para saber exatamente
+                                                              qual aplicacao esta sendo feita, mas se quiserem tirar.. *)
        print "> "; print_exp v; print "\n";
        v
      end)
