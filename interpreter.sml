@@ -90,12 +90,13 @@ and evaluateExpression(e:Expression):Expression =
   if isValue e then
     e
   else
-    (let val v = evalExp(e)
+     let val v = evalExp(e)
      in
        print "> "; printExp e; print " [Aplicacao] \n";
        print "> "; printExp v; print "\n";
        v
-     end)
+     end
+
 fun evaluateArgs(exp:Expression list):Expression list =
     case (exp) of
     (k::nil) => evaluateExpression(k)::nil
