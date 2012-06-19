@@ -11,7 +11,7 @@ type Application = Function * Expression list
 
 exception evaluateError of string
 
-fun is_value(e:Expression):bool =
+fun isValue(e:Expression):bool =
   case e of
     VInt _ => true
   | VBool _ => true
@@ -25,12 +25,12 @@ fun toString (e:Expression):string =
         VInt i => Int.toString i
       | VBool true => "true"
       | VBool false => "false"
-      | AExp(e1,s,e2) => (toString e1)^" "^s^" "^(toString e2)
-      | BExp(e1,s,e2) => (toString e1)^" "^s^" "^(toString e2)
+      | AExp(e1,s,e2) => "( "^(toString e1)^" "^s^" "^(toString e2)^" )"
+      | BExp(e1,s,e2) => "( "^(toString e1)^" "^s^" "^(toString e2)^" )"
       | Id x => x
       | If (s,e1,e2,e3) => "if("^(toString e1)^") then "^(toString e2)^" else "^ (toString e3)
 
-fun print_exp(e:Expression):unit = print (toString e)
+fun printExp(e:Expression):unit = print (toString e)
 
 fun comp(e:Expression, s:string) =
   case e of
@@ -47,10 +47,10 @@ fun subst(v:Expression, x:Expression, e:Expression):Expression =
   | If(s,e1,e2,e3) => If(s,subst(v,x,e1),subst(v,x,e2), subst(v,x,e3))
 
 and substitute(v:Expression list, l:Expression list, e:Expression):Expression =
-  (print "> "; print_exp e; print " [Substituicao] \n"; 
    case (v,l,e) of
-    (u::nil,k::nil,e) => subst(u,k,e)
-  | ((u::us),(k::ks),e) => substitute(us,ks,subst(u,k,e):Expression))
+    (nil,nil,e) =>  e
+  | ((u::us),(k::ks),e) => 
+      (print "> "; printExp e; print " [";printExp (hd(l));print " <- ";printExp (hd(v));print "] \n"; substitute(us,ks,(subst(u,k,e))))
 
 fun evalExp(e:Expression):Expression =
   case e of
@@ -87,19 +87,26 @@ fun evalExp(e:Expression):Expression =
       end
 
 and evaluateExpression(e:Expression):Expression =
-  if is_value e then
+  ((*print "> "; printExp e; print " [Entrada] \n";*)
+  if isValue e then
     e
   else
     (let val v = evalExp(e)
      in
-       print "> "; print_exp e; print " [Aplicacao] \n";
-       print "> "; print_exp v; print "\n";
+       print "> "; printExp e; print " [Aplicacao] \n";
+       print "> "; printExp v; print "\n";
        v
      end)
+  )
+fun evaluateArgs(exp:Expression list):Expression list =
+    case (exp) of
+    (k::nil) => evaluateExpression(k)::nil
+  | (k::ks) => evaluateExpression(k)::evaluateArgs(ks)
+
 
 fun apriori(app:Application):Expression =
   case app of
-    (("fun",l,exp), vs) => evaluateExpression(substitute(vs, l, exp))
+    (("fun",l,exp), vs) => evaluateExpression(substitute(evaluateArgs(vs), l, exp))
   | _ => raise evaluateError("Aplicação inválida.") 
        
 (* TESTES *)
