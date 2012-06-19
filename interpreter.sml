@@ -87,7 +87,6 @@ fun evalExp(e:Expression):Expression =
       end
 
 and evaluateExpression(e:Expression):Expression =
-  ((*print "> "; printExp e; print " [Entrada] \n";*)
   if isValue e then
     e
   else
@@ -97,7 +96,6 @@ and evaluateExpression(e:Expression):Expression =
        print "> "; printExp v; print "\n";
        v
      end)
-  )
 fun evaluateArgs(exp:Expression list):Expression list =
     case (exp) of
     (k::nil) => evaluateExpression(k)::nil
