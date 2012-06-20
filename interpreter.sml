@@ -100,7 +100,8 @@ and evaluateExpression(e:Expression):Expression =
 
 fun evaluateArgs(exp:Expression list):Expression list =
     case (exp) of
-      (k::nil) => evaluateExpression(k)::nil
+      nil => nil
+    | (k::nil) => evaluateExpression(k)::nil
     | (k::ks) => evaluateExpression(k)::evaluateArgs(ks)
 
 
@@ -141,14 +142,13 @@ fun evalExpLazy(e:Expression):Expression =
 			      end
         | _ => raise evaluateError("Expressão booleana incorreta.")
       end
-  | AExp(e1, s, e2) => (*Ainda precisa mudar para lazy.*)
+  | AExp(e1, s, e2) =>
       let val v1 = evaluateExpressionLazy e1
           val v2 = evaluateExpressionLazy e2
       in
-        case (e1, s, e2) of
+        case (v1, s, v2) of
           (VInt i1, "+", VInt i2) => VInt(i1+i2)
         | (VInt i1, "-", VInt i2) => VInt(i1-i2)
-      (*| (AExp i1, "+", VInt i2) => VInt((evaluateExpressionLazy i1)+i2)*)
         | _ => raise evaluateError("Expressão aritmética incorreta.")
       end
   | Id _ => raise evaluateError("Variável livre.") 
@@ -171,7 +171,6 @@ and evaluateExpressionLazy(e:Expression):Expression =
        v
      end)
 
-(*Precisa ainda fazer a aplicação após cada substituição.*)
 fun substAndApply(v:Expression, x:Expression, e:Expression):Expression =
   case e of
     VInt _ => e
@@ -191,14 +190,9 @@ and substituteAndApply(v:Expression list, l:Expression list, e:Expression):Expre
        (print "> "; printExp e; print " [";printExp (hd(l));print " <- ";printExp (hd(v));print "] \n";
         substituteAndApply(us,ks,(substAndApply(u,k,e))))
 
-fun evaluateArgsLazy(exp:Expression list):Expression list =
-    case (exp) of
-      (k::nil) => evaluateExpressionLazy(k)::nil
-    | (k::ks) => evaluateExpressionLazy(k)::evaluateArgs(ks)
-
 fun sobdemanda(app:Application):Expression =
   case app of
-    (("fun",l,exp), vs) => evaluateExpressionLazy(substituteAndApply(evaluateArgsLazy(vs), l, exp))
+    (("fun",l,exp), vs) => evaluateExpressionLazy(substituteAndApply(vs, l, exp))
   | _ => raise evaluateError("Aplicação inválida.")
 
 (* TESTES *)
@@ -208,3 +202,4 @@ val e3 = (("fun", [Id "x", Id "y"], BExp (Id "x", "And", Id "y")), [VBool false,
 val e4 = (("fun", [Id "x", Id "y"], AExp (Id "x", "+", Id "y")), [AExp (VInt 2, "+", VInt 5), VInt 3]);
 val e5 = (("fun", [Id "x", Id "y"], If("if",BExp (Id "x", "Or", Id "y"),VInt 1, VInt 0)), [VBool false, VBool true]);
 val e6 = (("fun", [Id "x", Id "y"], If("if",BExp (Id "x", "And", Id "y"),VInt 1, VInt 0)), [VBool false, VBool true]);
+val e7 = (("fun", [], If("if",VBool true,VBool true, VBool false)), []);
